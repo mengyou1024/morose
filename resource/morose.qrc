@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qml/main.qml</file>
+        <file>img/morose.ico</file>
+    </qresource>
+</RCC>
