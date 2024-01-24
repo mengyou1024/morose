@@ -1,0 +1,90 @@
+name: 发布版本
+
+on:
+  push:
+    tags: 
+    - 'release/*'
+    - 'release/v*'
+    - 'v*'
+
+jobs:
+  New_Version_Build_And_Release:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - qt_arch: win64_msvc2019_64
+            qt_ver: 6.5.*
+            app_name: morose
+    steps:
+    # 拉取仓库
+    - name: Git Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        submodules: recursive
+    # 配置Git的username和email
+    - uses: tidylabs/action-git-config-user@v1
+    # 创建changelog
+    - name: Create changelog text
+      id: changelog
+      uses: mengyou1024/action-changelog@v0.1.0
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        exclude_types: other,doc,chore
+    # 安装ISCC
+    - uses: Minionguyjpro/Inno-Setup-Action@v1.0.0
+    # 安装Qt
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: ${{ matrix.qt_ver }}
+        arch: ${{ matrix.qt_arch }}
+        cache: ${{steps.cache-qt.outputs.cache-hit}}
+        modules: 'qt5compat qtmultimedia qtshadertools qtimageformats'
+    # 配置、编译程序
+    - name: CMake Config
+      run: |
+        cmake -B build -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }}" -G "Unix Makefiles"  -DCMAKE_BUILD_TYPE=Release
+    - name: CMake Build
+      run: cmake --build build --target generate_exe_installer --config Release
+    # 打包输出文件
+    - name: Package 
+      run: |
+        pushd output
+        mv dist ${{ matrix.app_name }}
+        7z a -tZip ${{ matrix.app_name }}.zip ./${{ matrix.app_name }}/*
+        cp ${{ matrix.app_name }}.zip ../${{ matrix.app_name }}.zip
+        popd
+    # 创建Release
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        body: ${{ steps.changelog.outputs.changes }}
+        draft: false
+        prerelease: false
+    # 上传exe安装程序
+    - name: Upload Release Installer
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./output/install/${{ matrix.app_name }}Installer.exe
+        asset_name: ${{ matrix.app_name }}Installer.exe
+        asset_content_type: application/octet-stream
+    # 上传压缩包
+    - name: Upload Release Zip
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./${{ matrix.app_name }}.zip
+        asset_name: ${{ matrix.app_name }}.zip
+        asset_content_type: application/zip

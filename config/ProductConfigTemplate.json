@@ -1,0 +1,5 @@
+// 1. 拷贝当前文件并重命名为ProductConfig.json
+// 2. 删除注释行
+{
+    "name": "Product"
+}
