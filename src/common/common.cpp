@@ -66,8 +66,12 @@ void Morose::logMessageHandler(QtMsgType type, const QMessageLogContext &context
 #endif
 
     QString logTimeInfo = QDateTime::currentDateTime().toString("[yyyy-MM-dd hh:mm:ss.zzz]");
-    QString message     = QString("%1 %2 %3 %4")
-                          .arg(logTimeInfo, logLevel, logCategory, QString("%1%2").arg(msg, QString(maxMsgLen - msgLen, ' ')));
+    QString message     = {};
+    if (type == QtDebugMsg) {
+        message = QString("%1 %2 %3 □□□%4■■■%5").arg(logTimeInfo, logLevel, logCategory, context.function, QString("%1%2").arg(msg, QString(maxMsgLen - msgLen, ' ')));
+    } else {
+        message = QString("%1 %2 %3 %4").arg(logTimeInfo, logLevel, logCategory, QString("%1%2").arg(msg, QString(maxMsgLen - msgLen, ' ')));
+    }
     message.replace("\n", QString("\n") + QString(33 + maxCatelogyLen, ' '));
 
 #if defined(QT_DEBUG)

@@ -69,12 +69,6 @@ macro(morose_main_setup)
         else(ISCC_PATH)
             message(WARNING "no ISCC path found, please install inno setup and add it to path\n see: https://jrsoftware.org/isinfo.php")
         endif(ISCC_PATH)
-
-        configure_file(
-            ${CMAKE_CURRENT_SOURCE_DIR}/morose_config.h.in
-            ${CMAKE_CURRENT_SOURCE_DIR}/morose_config.h
-            @ONLY
-        )
     else (NOT EXISTS "${CMAKE_SOURCE_DIR}/archive.json")
         file(READ "${CMAKE_SOURCE_DIR}/archive.json" ARCHIVE_JSON_STRING)
         string(JSON APP_VERSION GET "${ARCHIVE_JSON_STRING}" APP_VERSION)
@@ -82,6 +76,12 @@ macro(morose_main_setup)
         string(JSON GIT_REPOSITORY_URL GET "${ARCHIVE_JSON_STRING}" GIT_REPOSITORY_URL)
         string(JSON GIT_USER_EMAIL GET "${ARCHIVE_JSON_STRING}" GIT_USER_EMAIL)
     endif(NOT EXISTS "${CMAKE_SOURCE_DIR}/archive.json")
+
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/morose_config.h.in
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/morose_config.h
+        @ONLY
+    )
 endmacro(morose_main_setup)
 
 #[[
@@ -123,7 +123,7 @@ function(morose_auto_release)
         endforeach(ITEM ${MOROSE_PLUGINS_TYPE})
 
         foreach(ITEM ${MOROSE_PLUGIN_QML_DIRS})
-            set(QML_DIRS ${QML_DIRS} "-qmldir=${ITEM}")
+            set(QML_DIRS ${QML_DIRS} "--qmldir=${ITEM}")
         endforeach(ITEM ${MOROSE_PLUGIN_QML_DIRS})
 
         # 搜索inno setup工具
@@ -144,6 +144,7 @@ function(morose_auto_release)
                 # 执行windeployqt进行打包
                 COMMAND ${WINDEPLOYQT_EXECUTABLE}
                 --verbose 0
+                --translations zh_CN,en
                 ${MOROSE_DIST_DIR}
                 ${PLUGIN_DIRS}
                 ${QML_DIRS}
@@ -170,6 +171,7 @@ function(morose_auto_release)
                 COMMAND ${WINDEPLOYQT_EXECUTABLE}
                 --verbose 0
                 --translations zh_CN,en
+                "${MOROSE_DIST_DIR}/${PROJECT_NAME}${MOROSE_OUTPUT_SUFFIX}"
                 ${MOROSE_DIST_DIR}
                 ${PLUGIN_DIRS}
                 ${QML_DIRS}

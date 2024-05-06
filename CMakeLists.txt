@@ -13,10 +13,10 @@ find_package(Qt6 REQUIRED COMPONENTS Quick Widgets)
 
 set(
     PROJECT_SOURCES
-    main.cpp
-    morose_config.h
-    common/common.h
-    common/common.cpp
+    src/main.cpp
+    src/morose_config.h
+    src/common/common.h
+    src/common/common.cpp
     resource/morose.qrc
     icon.rc
 )
