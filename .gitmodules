@@ -1,0 +1,3 @@
+[submodule "components/SingleApplication"]
+	path = components/SingleApplication
+	url = https://github.com/mengyou1024/SingleApplication.git

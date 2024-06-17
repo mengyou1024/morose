@@ -3,8 +3,8 @@
 
 #define MyAppName "@PROJECT_NAME@"
 #define MyAppVersion "@APP_VERSION@"
-#define MyAppPublisher "@GIT_USER_NAME@"
-#define MyAppURL "@GIT_REPOSITORY_URL@"
+#define MyAppPublisher "@APP_PUBLISHER@"
+#define MyAppURL "@APP_URL@"
 #define MyAppExeName "@PROJECT_NAME@@CMAKE_EXECUTABLE_SUFFIX@"
 #define MoroseInstallDir "@MOROSE_INSTALL_DIR@"
 #define MoroseIcon  "@MOROSE_ICON@"

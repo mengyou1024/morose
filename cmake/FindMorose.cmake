@@ -2,14 +2,12 @@
     获取有关git的相关信息
     `morose_main_setup()`
     软件版本 `APP_VERSION`
-    Git仓库地址 `GIT_REPOSITORY`
-    Git用户名 `GIT_USER_NAME`
-    Git邮箱 `GIT_USER_EMAIL`
     相关变量会保存到 `morose_config.h` 文件中
 ]]
 macro(morose_main_setup)
     find_package(Git QUIET)
-    if (NOT EXISTS "${CMAKE_SOURCE_DIR}/archive.json")
+
+    if(NOT EXISTS "${CMAKE_SOURCE_DIR}/archive.json")
         if(GIT_FOUND)
             execute_process(
                 COMMAND ${GIT_EXECUTABLE} describe --tags
@@ -19,44 +17,20 @@ macro(morose_main_setup)
             )
 
             if(NOT APP_VERSION)
-                message(WARNING "Git repository must have a tag , use `git tag <tag_name> -m <tag_message>` to create a tag.\n"
-                "\te.g.: `git tag v0.0.0 -m \"init\"`\n"
-                "the git describe is use for varible `APP_VERSION`\n"
-                "now will use v0.0.0 for the `APP_VERSION`"
+                message(WARNING "Git repository suggest have a tag , use `git tag <tag_name> -m <tag_message>` to create a tag.\n"
+                    "\te.g.: `git tag v0.0.1 -m \"init\"`\n"
+                    "the git describe is use for varible `APP_VERSION`\n"
+                    "now will use `v0.0.0` as version."
                 )
                 set(APP_VERSION "v0.0.0")
             else()
                 message(STATUS "APP VERSION:" ${APP_VERSION})
             endif()
 
-            execute_process(
-                COMMAND ${GIT_EXECUTABLE} remote
-                OUTPUT_VARIABLE GIT_REMOTE
-                OUTPUT_STRIP_TRAILING_WHITESPACE
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-            )
-            execute_process(
-                COMMAND ${GIT_EXECUTABLE} remote get-url ${GIT_REMOTE}
-                OUTPUT_VARIABLE GIT_REPOSITORY_URL
-                OUTPUT_STRIP_TRAILING_WHITESPACE
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-            )
-            unset(GIT_REMOTE)
-            message(STATUS "GIT_REPOSITORY_URL:${GIT_REPOSITORY_URL}")
-            execute_process(
-                COMMAND ${GIT_EXECUTABLE} config user.name
-                OUTPUT_VARIABLE GIT_USER_NAME
-                OUTPUT_STRIP_TRAILING_WHITESPACE
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-            )
-            message(STATUS "GIT_USER_NAME:${GIT_USER_NAME}")
-            execute_process(
-                COMMAND ${GIT_EXECUTABLE} config user.email
-                OUTPUT_VARIABLE GIT_USER_EMAIL
-                OUTPUT_STRIP_TRAILING_WHITESPACE
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-            )
-            message(STATUS "GIT_USER_EMAIL:${GIT_USER_EMAIL}")
+            set(APP_URL "<your app url>")
+            set(APP_PUBLISHER "<your name>")
+            message(STATUS "APP PUBLISHER:" ${APP_PUBLISHER})
+            message(STATUS "APP URL:" ${APP_URL})
         else()
             message(WARNING "no git found, please install git: https://git-scm.com/")
         endif()
@@ -69,12 +43,11 @@ macro(morose_main_setup)
         else(ISCC_PATH)
             message(WARNING "no ISCC path found, please install inno setup and add it to path\n see: https://jrsoftware.org/isinfo.php")
         endif(ISCC_PATH)
-    else (NOT EXISTS "${CMAKE_SOURCE_DIR}/archive.json")
+    else(NOT EXISTS "${CMAKE_SOURCE_DIR}/archive.json")
         file(READ "${CMAKE_SOURCE_DIR}/archive.json" ARCHIVE_JSON_STRING)
         string(JSON APP_VERSION GET "${ARCHIVE_JSON_STRING}" APP_VERSION)
-        string(JSON GIT_USER_NAME GET "${ARCHIVE_JSON_STRING}" GIT_USER_NAME)
-        string(JSON GIT_REPOSITORY_URL GET "${ARCHIVE_JSON_STRING}" GIT_REPOSITORY_URL)
-        string(JSON GIT_USER_EMAIL GET "${ARCHIVE_JSON_STRING}" GIT_USER_EMAIL)
+        string(JSON APP_PUBLISHER GET "${ARCHIVE_JSON_STRING}" APP_PUBLISHER)
+        string(JSON APP_URL GET "${ARCHIVE_JSON_STRING}" APP_URL)
     endif(NOT EXISTS "${CMAKE_SOURCE_DIR}/archive.json")
 
     configure_file(
@@ -123,7 +96,7 @@ function(morose_auto_release)
         endforeach(ITEM ${MOROSE_PLUGINS_TYPE})
 
         foreach(ITEM ${MOROSE_PLUGIN_QML_DIRS})
-            set(QML_DIRS ${QML_DIRS} "--qmldir=${ITEM}")
+            set(QML_DIRS ${QML_DIRS} "-qmldir=${ITEM}")
         endforeach(ITEM ${MOROSE_PLUGIN_QML_DIRS})
 
         # 搜索inno setup工具
@@ -137,14 +110,13 @@ function(morose_auto_release)
                 COMMAND ${CMAKE_COMMAND} -E make_directory ${PLUGIN_DIRS}
 
                 # 拷贝生成的EXE
-                COMMAND ${CMAKE_COMMAND} -E copy
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX}"
                 "${MOROSE_DIST_DIR}/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX}"
 
                 # 执行windeployqt进行打包
                 COMMAND ${WINDEPLOYQT_EXECUTABLE}
                 --verbose 0
-                --translations zh_CN,en
                 ${MOROSE_DIST_DIR}
                 ${PLUGIN_DIRS}
                 ${QML_DIRS}
@@ -162,7 +134,7 @@ function(morose_auto_release)
                 COMMAND ${CMAKE_COMMAND} -E make_directory ${PLUGIN_DIRS}
 
                 # 拷贝生成的EXE
-                COMMAND ${CMAKE_COMMAND} -E copy
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
                 "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX}"
                 "${MOROSE_DIST_DIR}/${PROJECT_NAME}${CMAKE_EXECUTABLE_SUFFIX}"
 
@@ -171,7 +143,6 @@ function(morose_auto_release)
                 COMMAND ${WINDEPLOYQT_EXECUTABLE}
                 --verbose 0
                 --translations zh_CN,en
-                "${MOROSE_DIST_DIR}/${PROJECT_NAME}${MOROSE_OUTPUT_SUFFIX}"
                 ${MOROSE_DIST_DIR}
                 ${PLUGIN_DIRS}
                 ${QML_DIRS}
@@ -201,7 +172,7 @@ endfunction(morose_add_qml_dirs)
     设置当前项目为插件项目
     `morose_plugin_setup([TYPE] type [TARGET] target)`
     `TYPE` 插件类型，默认为GENERIC 类型必须是`MOROSE_PLUGINS_TYPE`中的一个
-    `TARGET` 插件的生成目标，默认为${CMAKE_PROJECT_NAME}
+    `TARGET` 插件的生成目标，默认为${CMAKE_PROJECT_NAME} 
 ]]
 macro(morose_plugin_setup)
     set(oneValueArgs "TYPE" "TARGET")
@@ -218,7 +189,7 @@ macro(morose_plugin_setup)
     string(TOLOWER ${SETUP_TYPE} SETUP_TYPE)
     add_custom_command(
         TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}${PROJECT_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}${PROJECT_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}"
         "${MOROSE_RUNTIME_PLUGINS_DIR}/${SETUP_TYPE}/${CMAKE_SHARED_LIBRARY_PREFIX}${PROJECT_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}"
         COMMAND echo "copy plugin [${SETUP_TYPE}/${PROJECT_NAME}] to runtime directory"
         COMMENT "copy plugin [${SETUP_TYPE}/${PROJECT_NAME}] to runtime directory"
@@ -227,7 +198,7 @@ macro(morose_plugin_setup)
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
         add_custom_command(
             TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}${PROJECT_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_SHARED_LIBRARY_PREFIX}${PROJECT_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}"
             "${MOROSE_PLUGINS_DIR}/${SETUP_TYPE}/${CMAKE_SHARED_LIBRARY_PREFIX}${PROJECT_NAME}${CMAKE_SHARED_LIBRARY_SUFFIX}"
             COMMAND echo "copy plugin [${SETUP_TYPE}/${PROJECT_NAME}] to bundle directory"
             COMMENT "copy plugin [${SETUP_TYPE}/${PROJECT_NAME}] to bundle directory"
@@ -241,7 +212,6 @@ macro(morose_plugin_setup)
         target_include_directories(${SETUP_TARGET} PRIVATE "${CMAKE_CURRENT_LIST_DIR}/../common/interface")
         message(STATUS "MOROSE_MAIN:${MOROSE_MAIN}, add plugin:[${SETUP_TARGET}]")
     endif(NOT SETUP_TARGET)
-
 endmacro(morose_plugin_setup)
 
 #[[
@@ -271,6 +241,7 @@ function(morose_copy)
     if(COPY_FILES)
         # 拷贝文件[列表]
         set(COPY_FILE_STRING "")
+        set(DEP_FILE_STRING "")
 
         foreach(ITEM ${COPY_FILES})
             get_filename_component(COPY_FILENAME ${ITEM} NAME)
@@ -283,10 +254,12 @@ function(morose_copy)
                 endif(COPY_FILE_LEN EQUAL "1")
             endif(COPY_RENAME)
 
-            list(APPEND COPY_FILE_STRING COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/${ITEM}" "${CMAKE_BINARY_DIR}${COPY_DIST_DIR}${COPY_FILENAME}")
+            list(APPEND DEP_FILE_STRING "${CMAKE_CURRENT_SOURCE_DIR}/${ITEM}")
+            list(APPEND COPY_FILE_STRING COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/${ITEM}" "${CMAKE_BINARY_DIR}${COPY_DIST_DIR}${COPY_FILENAME}")
 
             if(CMAKE_BUILD_TYPE STREQUAL "Release")
-                list(APPEND COPY_FILE_STRING COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_CURRENT_SOURCE_DIR}/${ITEM}" "${MOROSE_DIST_DIR}${COPY_DIST_DIR}${COPY_FILENAME}")
+                list(APPEND DEP_FILE_STRING "${CMAKE_CURRENT_SOURCE_DIR}/${ITEM}")
+                list(APPEND COPY_FILE_STRING COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/${ITEM}" "${MOROSE_DIST_DIR}${COPY_DIST_DIR}${COPY_FILENAME}")
             endif(CMAKE_BUILD_TYPE STREQUAL "Release")
         endforeach(ITEM ${COPY_FILES})
 
@@ -295,6 +268,12 @@ function(morose_copy)
 
             # 拷贝文件至运行目录
             ${COPY_FILE_STRING}
+            COMMENT "copy file"
+            DEPENDS
+            "${DEP_FILE_STRING}"
+            BYPRODUCTS
+            "${CMAKE_BINARY_DIR}${COPY_DIST_DIR}${COPY_FILENAME}"
+            "${MOROSE_DIST_DIR}${COPY_DIST_DIR}${COPY_FILENAME}"
         )
 
         if(CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -322,6 +301,7 @@ function(morose_copy)
     if(COPY_DIRS)
         # 拷贝目录[列表]
         set(COPY_DIR_STRING "")
+        set(DEP_FILE_STRING "")
 
         foreach(ITEM ${COPY_DIRS})
             get_filename_component(COPY_DIRNAME ${ITEM} NAME)
@@ -334,10 +314,12 @@ function(morose_copy)
                 endif(COPY_DIR_LEN EQUAL "1")
             endif(COPY_RENAME)
 
-            list(APPEND COPY_DIR_STRING COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/${ITEM}" "${CMAKE_BINARY_DIR}${COPY_DIST_DIR}${COPY_DIRNAME}")
+            list(APPEND DEP_FILE_STRING "${CMAKE_CURRENT_SOURCE_DIR}/${ITEM}")
+            list(APPEND COPY_DIR_STRING COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different "${CMAKE_CURRENT_SOURCE_DIR}/${ITEM}" "${CMAKE_BINARY_DIR}${COPY_DIST_DIR}${COPY_DIRNAME}")
 
             if(CMAKE_BUILD_TYPE STREQUAL "Release")
-                list(APPEND COPY_DIR_STRING COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/${ITEM}" "${MOROSE_DIST_DIR}${COPY_DIST_DIR}${COPY_DIRNAME}")
+                list(APPEND DEP_FILE_STRING "${CMAKE_CURRENT_SOURCE_DIR}/${ITEM}")
+                list(APPEND COPY_DIR_STRING COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different "${CMAKE_CURRENT_SOURCE_DIR}/${ITEM}" "${MOROSE_DIST_DIR}${COPY_DIST_DIR}${COPY_DIRNAME}")
             endif(CMAKE_BUILD_TYPE STREQUAL "Release")
         endforeach(ITEM ${COPY_DIRS})
 
@@ -346,6 +328,11 @@ function(morose_copy)
 
             # 拷贝的是目录
             ${COPY_DIR_STRING}
+            DEPENDS
+            "${DEP_FILE_STRING}"
+            BYPRODUCTS
+            "${CMAKE_BINARY_DIR}${COPY_DIST_DIR}${COPY_DIRNAME}"
+            "${MOROSE_DIST_DIR}${COPY_DIST_DIR}${COPY_DIRNAME}"
         )
 
         if(CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -387,26 +374,45 @@ function(morose_add_environment_config_file)
     set(CONF_FILE_STRING "")
     get_filename_component(CONF_DEPLOY_FILE_NAME ${CONF_DEPLOY} NAME)
     get_filename_component(CONF_PRODUCT_FILE_NAME ${CONF_PRODUCT} NAME)
+
     # 拷贝ConfigFile至运行目录
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
         if(CONF_RUNTIME_USE_PRODUCT)
-            list(APPEND CONF_FILE_STRING COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_SOURCE_DIR}/${CONF_PRODUCT}" "${CMAKE_BINARY_DIR}/${CONF_DIST}")
+            list(APPEND CONF_FILE_STRING COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/${CONF_PRODUCT}" "${CMAKE_BINARY_DIR}/${CONF_DIST}")
         else(CONF_RUNTIME_USE_PRODUCT)
-            list(APPEND CONF_FILE_STRING COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_SOURCE_DIR}/${CONF_DEPLOY}" "${CMAKE_BINARY_DIR}/${CONF_DIST}")
+            list(APPEND CONF_FILE_STRING COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/${CONF_DEPLOY}" "${CMAKE_BINARY_DIR}/${CONF_DIST}")
         endif(CONF_RUNTIME_USE_PRODUCT)
     else(CMAKE_BUILD_TYPE STREQUAL "Release")
-        list(APPEND CONF_FILE_STRING COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_SOURCE_DIR}/${CONF_PRODUCT}" "${CMAKE_BINARY_DIR}/${CONF_DIST}")
+        list(APPEND CONF_FILE_STRING COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/${CONF_PRODUCT}" "${CMAKE_BINARY_DIR}/${CONF_DIST}")
     endif(CMAKE_BUILD_TYPE STREQUAL "Release")
+
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
         # 拷贝ConfigFile至发布目录
-        list(APPEND CONF_FILE_STRING COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_SOURCE_DIR}/${CONF_DEPLOY}" "${MOROSE_DIST_DIR}/${CONF_DIST}")
+        list(APPEND CONF_FILE_STRING COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/${CONF_DEPLOY}" "${MOROSE_DIST_DIR}/${CONF_DIST}")
+
         # 添加至卸载的删除路径
         string(FIND "${MOROSE_UNINSTALL_DELETE}" "/${CONF_DIST}" pos)
+
         if(pos EQUAL -1)
             set(MOROSE_UNINSTALL_DELETE ${MOROSE_UNINSTALL_DELETE} "/${CONF_DIST}" CACHE INTERNAL "Morose Inno Setup delete file or directory")
         endif(pos EQUAL -1)
     endif(CMAKE_BUILD_TYPE STREQUAL "Release")
-    add_custom_command(TARGET ${CONF_TARGET} POST_BUILD ${CONF_FILE_STRING})
+
+    set(CONFIG_DEPS "")
+
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        set(CONFIG_DEPS "${CMAKE_SOURCE_DIR}/${CONF_PRODUCT}")
+    else(CMAKE_BUILD_TYPE STREQUAL "Release")
+        set(CONFIG_DEPS "${CMAKE_SOURCE_DIR}/${CONF_DEPLOY}")
+    endif(CMAKE_BUILD_TYPE STREQUAL "Release")
+
+    add_custom_target(
+        MOROSE_COPY ALL
+        COMMAND ${CONF_FILE_STRING}
+        COMMENT "MOROSE COPY"
+        DEPENDS "${CONFIG_DEPS}"
+        BYPRODUCTS "${CMAKE_BINARY_DIR}/${CONF_DIST}"
+    )
 endfunction(morose_add_environment_config_file)
 
 #[[
@@ -417,7 +423,7 @@ endfunction(morose_add_environment_config_file)
 function(morose_add_subdirectory_path path)
     file(GLOB SUBPATH "${path}/*")
     foreach(ITEM ${SUBPATH})
-        if (IS_DIRECTORY "${ITEM}" AND EXISTS "${ITEM}/CMakeLists.txt")
+        if(IS_DIRECTORY "${ITEM}" AND EXISTS "${ITEM}/CMakeLists.txt")
             file(RELATIVE_PATH ITEM_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${ITEM})
             add_subdirectory(${ITEM_PATH})
         endif(IS_DIRECTORY "${ITEM}" AND EXISTS "${ITEM}/CMakeLists.txt")
@@ -428,7 +434,13 @@ set(Morose_FOUND TRUE)
 morose_main_setup()
 set(MOROSE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/resource/img/morose.ico" CACHE STRING "Morose executable icon")
 set(MOROSE_OUT_DIR "${CMAKE_SOURCE_DIR}/output" CACHE STRING "Morose output directory")
-set(MOROSE_DIST_DIR "${MOROSE_OUT_DIR}/${PROJECT_NAME}-${APP_VERSION}" CACHE STRING "Morose dist directory")
+
+if(MSVC)
+    set(MOROSE_DIST_DIR "${MOROSE_OUT_DIR}/${PROJECT_NAME}-msvc-${APP_VERSION}" CACHE STRING "Morose dist directory" FORCE)
+elseif(MINGW)
+    set(MOROSE_DIST_DIR "${MOROSE_OUT_DIR}/${PROJECT_NAME}-mingw-${APP_VERSION}" CACHE STRING "Morose dist directory" FORCE)
+endif()
+
 message(STATUS MOROSE_DIST_DIR:${MOROSE_DIST_DIR})
 set(MOROSE_PLUGINS_DIR "${MOROSE_DIST_DIR}/plugins" CACHE INTERNAL "Morose plugins directory")
 set(MOROSE_INSTALL_DIR "${MOROSE_OUT_DIR}" CACHE INTERNAL "Morose install output directory")
@@ -449,9 +461,8 @@ add_custom_target(
     git submodule update --init --recursive" > nul
     COMMAND echo "{\
 \"APP_VERSION\":\"${APP_VERSION}\",\
-\"GIT_REPOSITORY_URL\": \"${GIT_REPOSITORY_URL}\",\
-\"GIT_USER_NAME\": \"${GIT_USER_NAME}\",\
-\"GIT_USER_EMAIL\": \"${GIT_USER_EMAIL}\"\
+\"APP_URL\": \"${APP_URL}\",\
+\"APP_PUBLISHER\": \"${APP_PUBLISHER}\"\
 }" > ${CMAKE_SOURCE_DIR}/output/archive/archive.json
     COMMAND ${CMAKE_COMMAND} -E rm -rf ${CMAKE_SOURCE_DIR}/output/archive/.git ${CMAKE_SOURCE_DIR}/output/archive/.github
     COMMAND 7z a -tZip ${CMAKE_SOURCE_DIR}/output/${PROJECT_NAME}-${APP_VERSION}-archive.zip ${CMAKE_SOURCE_DIR}/output/archive/* -bso0

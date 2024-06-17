@@ -1,7 +1,7 @@
 #include "common.h"
 #include "../morose_config.h"
 
-void Morose::logMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg) {
+void Morose::logMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg) {
     static QMutex mutex;
     static int    maxCatelogyLen = 12;
     int           categoryLen    = QString(context.category).length();
@@ -103,27 +103,33 @@ void Morose::logMessageHandler(QtMsgType type, const QMessageLogContext &context
 #endif
 }
 
-void Morose::registerVariable(QQmlContext *context) {
+void Morose::registerVariable(QQmlContext* context) {
     context->setContextProperty("MOROSE_APP_VERSION", APP_VERSION);
     context->setContextProperty("MOROSE_GIT_REPOSITORY", GIT_REPOSITORY);
     context->setContextProperty("MOROSE_GIT_USER_NAME", GIT_USER_NAME);
     context->setContextProperty("MOROSE_GIT_USER_EMAIL", GIT_USER_EMAIL);
 }
 
-QJsonObject &Morose::getGlobalEnvironment() {
+QJsonObject& Morose::getGlobalEnvironment() {
     static QJsonObject obj;
     return obj;
 }
 
-QJsonObject &Morose::loadGlobalEnvironment() {
+QJsonObject& Morose::loadGlobalEnvironment() {
     QFile file("Config.json");
     if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+        QJsonParseError err;
+        QJsonDocument   doc = QJsonDocument::fromJson(file.readAll(), &err);
         if (doc.isObject()) {
             getGlobalEnvironment() = doc.object();
+            qDebug() << getGlobalEnvironment();
+        } else {
+            qWarning() << err.errorString();
         }
         file.close();
+
+    } else {
+        qWarning() << "open file: Config.json failed!";
     }
-    qDebug() << getGlobalEnvironment();
     return getGlobalEnvironment();
 }
