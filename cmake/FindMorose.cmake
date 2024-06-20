@@ -422,12 +422,27 @@ endfunction(morose_add_environment_config_file)
 ]]
 function(morose_add_subdirectory_path path)
     file(GLOB SUBPATH "${path}/*")
+
+    foreach(ITEM ${SUBPATH})
+        if(ITEM MATCHES ".*\\.((rar)|(7z)|(zip))$")
+            get_filename_component(ITEM_PATH ${ITEM} DIRECTORY)
+            message(STATUS "Extrace File:${ITEM}")
+            execute_process(
+                COMMAND ${CMAKE_COMMAND} -E tar xzf ${ITEM}
+                WORKING_DIRECTORY ${ITEM_PATH}
+            )
+        endif()
+    endforeach(ITEM ${SUBPATH})
+
+    file(GLOB SUBPATH "${path}/*")
+
     foreach(ITEM ${SUBPATH})
         if(IS_DIRECTORY "${ITEM}" AND EXISTS "${ITEM}/CMakeLists.txt")
             file(RELATIVE_PATH ITEM_PATH ${CMAKE_CURRENT_SOURCE_DIR} ${ITEM})
+            message(STATUS "Add Subdirectory: ${ITEM_PATH}")
             add_subdirectory(${ITEM_PATH})
         endif(IS_DIRECTORY "${ITEM}" AND EXISTS "${ITEM}/CMakeLists.txt")
-    endforeach(ITEM ${ITEM_PATH})
+    endforeach(ITEM ${SUBPATH})
 endfunction(morose_add_subdirectory_path path)
 
 set(Morose_FOUND TRUE)
