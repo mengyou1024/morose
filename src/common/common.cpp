@@ -91,7 +91,7 @@ void Morose::logMessageHandler(QtMsgType type, const QMessageLogContext& context
     if (type == QtCriticalMsg || type == QtFatalMsg) {
         QFile _file("./log/error.txt");
         _file.open(QFile::WriteOnly | QIODevice::Append);
-        QTextStream _text_stream(&file);
+        QTextStream _text_stream(&_file);
         _text_stream << message << "\n";
         _file.flush();
         _file.close();
