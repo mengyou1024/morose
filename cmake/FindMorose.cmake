@@ -83,11 +83,11 @@ function(morose_auto_release)
         endforeach(ITEM ${MOROSE_PLUGINS_TYPE})
 
         # 清除输出
-        add_custom_target(
-            bundle_clean
+        add_custom_command(
+            TARGET clean-all POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E rm -rf "${MOROSE_DIST_DIR}"
             COMMAND ${CMAKE_COMMAND} -E rm -rf "${MOROSE_INSTALL_DIR}"
-            COMMENT "clear output directory"
+            COMMENT "remove output directory: ${MOROSE_DIST_DIR} , ${MOROSE_INSTALL_DIR}"
         )
 
         foreach(ITEM ${MOROSE_PLUGINS_TYPE})
@@ -330,9 +330,14 @@ function(morose_copy)
             ${COPY_DIR_STRING}
             DEPENDS
             "${DEP_FILE_STRING}"
-            BYPRODUCTS
+        )
+
+        add_custom_command(
+            TARGET clean-all POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_BINARY_DIR}${COPY_DIST_DIR}${COPY_DIRNAME}"
+            DEPENDS
             "${CMAKE_BINARY_DIR}${COPY_DIST_DIR}${COPY_DIRNAME}"
-            "${MOROSE_DIST_DIR}${COPY_DIST_DIR}${COPY_DIRNAME}"
+            COMMENT "remove directory: ${CMAKE_BINARY_DIR}${COPY_DIST_DIR}${COPY_DIRNAME}"
         )
 
         if(CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -406,8 +411,8 @@ function(morose_add_environment_config_file)
         set(CONFIG_DEPS "${CMAKE_SOURCE_DIR}/${CONF_DEPLOY}")
     endif(CMAKE_BUILD_TYPE STREQUAL "Release")
 
-    add_custom_target(
-        MOROSE_COPY ALL
+    add_custom_command(
+        TARGET ${CONF_TARGET} POST_BUILD
         COMMAND ${CONF_FILE_STRING}
         COMMENT "MOROSE COPY"
         DEPENDS "${CONFIG_DEPS}"
@@ -466,6 +471,11 @@ set(MOROSE_PLUGIN_QML_DIRS CACHE INTERNAL "Morose plugin qml directories")
 set(MOROSE_UNINSTALL_DELETE CACHE INTERNAL "Morose Inno Setup delete file or directory")
 morose_add_subdirectory_path("extensions")
 morose_add_subdirectory_path("components")
+
+add_custom_target(
+    clean-all
+    COMMAND ${CMAKE_BUILD_TOOL} clean
+)
 
 add_custom_target(
     Archive
